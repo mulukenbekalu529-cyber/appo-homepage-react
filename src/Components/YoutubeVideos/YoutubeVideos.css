@@ -1,0 +1,35 @@
+.singleVideoWrapper {
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.videoThumbnail img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.videoTitle a {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #000;
+  text-decoration: none;
+}
+.videoTitle a:hover {
+  color: #06c;
+}
+
+.videoDesc {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 6px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.videoDate {
+  font-size: 0.8rem;
+  color: #888;
+}
