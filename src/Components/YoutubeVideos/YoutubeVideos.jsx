@@ -1,136 +1,159 @@
-// Question on React API
-// 1. Apple has a YouTube channel with various videos available. Please display 9 random
-// YouTube videos on your React based Apple website replica by fetching these videos from
-// the YouTube data API that is publicly available. Please display your YouTube video
-// component right below the component that has the last two images, i.e., right below the
-// Arcade and Apple Card section. You will need to get an API key to access YouTube data
-// API.
-
-// Import useEffect and useState Hooks from React
 import { useEffect, useState } from "react";
-
-// Import the CSS file used to style this YouTube component
 import "./YoutubeVideos.css";
 
-// Create the Youtube functional component
 function Youtube() {
-  // Create a state variable to store the YouTube videos
-  // youTubeVideos = current list of videos
-  // setYouTubeVideos = function used to update the video list
-  // [] = initial value is an empty array
   const [youTubeVideos, setYouTubeVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // useEffect runs after the component is rendered
-  // We use it here to fetch videos from the YouTube API
   useEffect(() => {
-    // Send a request to the YouTube Data API
-    fetch(
-      "https://www.googleapis.com/youtube/v3/search?key=AIzaSyDrKRYvBujILVOowUqzdVJ7l4ifpVtwj9Y&channelId=UCE_M8A5yxnLfW0KghEeajjw&part=snippet&order=date&maxResults=8&type=video",
-    )
-      // Convert the API response from JSON format into JavaScript data
-      .then((response) => response.json())
+    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
 
-      // Get the video information from the API response
-      // Store the videos inside our state
-      .then((data) => {
-        setYouTubeVideos(data.items);
-      })
+    async function fetchVideos() {
+      if (!apiKey) {
+        setError("YouTube videos are temporarily unavailable.");
+        setLoading(false);
+        return;
+      }
 
-      // If something goes wrong, display the error in the console
-      .catch((error) => {
-        console.error("Error fetching YouTube videos:", error);
-      });
+      try {
+        const params = new URLSearchParams({
+          key: apiKey,
+          channelId: "UCE_M8A5yxnLfW0KghEeajjw",
+          part: "snippet",
+          maxResults: "9",
+          type: "video",
+        });
 
-    // Empty dependency array means:
-    // Run this effect only once when the component first loads
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?${params}`,
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error?.message || `YouTube API error: ${response.status}`,
+          );
+        }
+
+        const videos = Array.isArray(data.items) ? data.items : [];
+
+        // Shuffle the results and select 9 videos.
+        const shuffledVideos = [...videos];
+
+        for (let i = shuffledVideos.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledVideos[i], shuffledVideos[j]] = [
+            shuffledVideos[j],
+            shuffledVideos[i],
+          ];
+        }
+
+        setYouTubeVideos(shuffledVideos.slice(0, 9));
+      } catch (err) {
+        console.error("Error fetching YouTube videos:", err);
+        setError("YouTube videos are temporarily unavailable.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchVideos();
   }, []);
 
-  // Return the JSX that should appear on the webpage
   return (
-    // Main wrapper for the entire YouTube section
     <div className="allVideosWrapper">
-      {/* Bootstrap container controls the content width */}
       <div className="container">
-        {/* Bootstrap row creates the video grid */}
         <div className="row h-100 align-items-center justify-content-center text-center">
-          {/* Section title */}
           <div className="col-12">
             <div className="title-wraper bold video-title-wrapper">
               Youtube Videos
             </div>
           </div>
 
-          {/* 
-            Loop through all videos stored in the state.
-            .map() creates one video card for every video.
-            singleVideo = current video
-            i = index number of the current video
-            // Get the unique YouTube video ID
-            // Create the complete YouTube URL
-            
-          */}
-          {youTubeVideos.map((singleVideo, i) => {
-            const vidId = singleVideo.id.videoId;
-            const vidLink = `https://www.youtube.com/watch?v=${vidId}`;
+          {loading && (
+            <div className="col-12 py-4">Loading YouTube videos...</div>
+          )}
 
-            // Return one video card
-            // Bootstrap column
-            // col-md-3 = 4 videos per row on medium/large screens
-            // col-sm-12 = 1 video per row on small screens
-            return (
-              <div key={i} className="col-sm-12 col-md-3">
-                {/* Individual video card */}
-                <div className="singleVideoWrapper">
-                  {/* Video thumbnail section */}
-                  <div className="videoThumbnail">
-                    {/* 
-                      Clicking the thumbnail opens the YouTube video
-                      in a new browser tab
-                    */}
-                    <a href={vidLink} target="_blank" rel="noreferrer">
-                      {/* 
-                        Display the high-quality thumbnail
-                        provided by the YouTube API
-                      */}
-                      <img
-                        src={singleVideo.snippet.thumbnails.high.url}
-                        alt={singleVideo.snippet.title}
-                      />
-                    </a>
-                  </div>
+          {!loading && error && (
+            <div className="col-12 py-4" role="status">
+              {error}
+            </div>
+          )}
 
-                  {/* Information below the thumbnail */}
-                  <div className="videoInfoWrapper">
-                    {/* Video title */}
-                    <div className="videoTitle">
-                      {/* Clicking the title opens the YouTube video */}
-                      <a href={vidLink} target="_blank" rel="noreferrer">
-                        {singleVideo.snippet.title}
-                      </a>
-                    </div>
-                    {/* Video description */}
-                    <div className="videoDesc">
-                      {singleVideo.snippet.description}
-                    </div>
-                    {/* Published date */}{" "}
-                    <div className="videoDate">
-                      {" "}
-                      Published:{" "}
-                      {new Date(
-                        singleVideo.snippet.publishedAt,
-                      ).toLocaleDateString("en-GB")}
+          {!loading && !error && youTubeVideos.length === 0 && (
+            <div className="col-12 py-4">
+              No videos are available right now.
+            </div>
+          )}
+
+          {!loading &&
+            !error &&
+            youTubeVideos.map((singleVideo) => {
+              const vidId =
+                typeof singleVideo.id === "object"
+                  ? singleVideo.id?.videoId
+                  : null;
+
+              if (!vidId || !singleVideo.snippet) return null;
+
+              const snippet = singleVideo.snippet;
+              const thumbnail =
+                snippet.thumbnails?.high?.url ||
+                snippet.thumbnails?.medium?.url ||
+                snippet.thumbnails?.default?.url;
+
+              const vidLink = `https://www.youtube.com/watch?v=${vidId}`;
+
+              return (
+                <div key={vidId} className="col-sm-12 col-md-4">
+                  <div className="singleVideoWrapper">
+                    {thumbnail && (
+                      <div className="videoThumbnail">
+                        <a
+                          href={vidLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={thumbnail}
+                            alt={snippet.title || "YouTube video"}
+                          />
+                        </a>
+                      </div>
+                    )}
+
+                    <div className="videoInfoWrapper">
+                      <div className="videoTitle">
+                        <a
+                          href={vidLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {snippet.title}
+                        </a>
+                      </div>
+
+                      <div className="videoDesc">{snippet.description}</div>
+
+                      <div className="videoDate">
+                        Published:{" "}
+                        {snippet.publishedAt
+                          ? new Date(snippet.publishedAt).toLocaleDateString(
+                              "en-GB",
+                            )
+                          : "Date unavailable"}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
     </div>
   );
 }
 
-// Export the Youtube component
-// This allows us to import and use it in App.jsx
 export default Youtube;
